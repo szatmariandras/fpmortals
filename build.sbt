@@ -17,9 +17,11 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.github.mpilquist" %% "simulacrum" % "0.13.0",
-  "com.chuusai" %% "shapeless" % "2.3.3",
-  "org.scalaz" %% "scalaz-core" % "7.2.26"
+  "com.github.mpilquist"  %% "simulacrum"  % "0.13.0",
+  "com.chuusai"           %% "shapeless"   % "2.3.3",
+  "org.scalaz"            %% "scalaz-core" % "7.2.26",
+  "com.propensive"        %% "contextual"  % "1.1.0",
+  "org.scalatest"         %% "scalatest"   % "3.0.5" % "test"
 )
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
