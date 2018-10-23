@@ -1,6 +1,6 @@
 package hu.andrasszatmari.fpmortals
 
-import scalaz.NonEmptyList
+import scalaz._, Scalaz._
 
 final case class WorldView(
   backlog: Int,

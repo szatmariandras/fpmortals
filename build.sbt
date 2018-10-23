@@ -1,5 +1,5 @@
 
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.7"
 
 scalacOptions in ThisBuild ++= Seq(
   "-language:_",
@@ -36,4 +36,4 @@ libraryDependencies ++= Seq(
 )
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
-addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)

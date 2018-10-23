@@ -2,8 +2,10 @@ package hu.andrasszatmari.fpmortals.OAuth
 
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.Url
-
-import jsonformat._, JsDecoder.ops._
+import jsonformat._
+import JsDecoder.ops._
+import UrlEncodedWriter.ops._
+import scalaz.IList
 
 final case class AuthRequest(
   redirect_uri: String Refined Url,
@@ -63,3 +65,41 @@ object RefreshResponse {
     } yield RefreshResponse(acc, tpe, exp)
   }
 }
+
+object AuthRequest {
+  implicit val query: UrlQueryWriter[AuthRequest] = { a =>
+    UrlQuery(List(
+      "redirect_uri"  -> a.redirect_uri.value,
+      "scope"         -> a.scope,
+      "client_id"     -> a.client_id,
+      "prompt"        -> a.prompt,
+      "response_type" -> a.response_type,
+      "access_type"   -> a.access_type
+    ))
+  }
+}
+
+object AccessRequest {
+  implicit val encoded: UrlEncodedWriter[AccessRequest] = { a =>
+    IList(
+      "code"          -> a.code.toUrlEncoded,
+      "redirect_uri"  -> a.redirect_uri.toUrlEncoded,
+      "client_id"     -> a.client_id.toUrlEncoded,
+      "client_secret" -> a.client_secret.toUrlEncoded,
+      "scope"         -> a.scope.toUrlEncoded,
+      "grant_type"    -> a.grant_type.toUrlEncoded
+    ).toUrlEncoded
+  }
+}
+
+object RefreshRequest {
+  implicit val encoded: UrlEncodedWriter[RefreshRequest] = { r =>
+    IList(
+      "client_secret" -> r.client_secret.toUrlEncoded,
+      "refresh_token" -> r.refresh_token.toUrlEncoded,
+      "client_id"     -> r.client_id.toUrlEncoded,
+      "grant_type"      -> r.grant_type.toUrlEncoded
+    ).toUrlEncoded
+  }
+}
+

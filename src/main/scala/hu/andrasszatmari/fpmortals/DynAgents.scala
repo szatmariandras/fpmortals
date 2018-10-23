@@ -15,9 +15,7 @@ final class DynAgentsModule[F[_]: Monad](D: Drone[F], M: Machines[F])
   extends DynAgents[F] {
 
   def initial: F[WorldView] =
-    ^^^^(D.getBacklog, D.getAgents, M.getManaged, M.getAlive, M.getTime) {
-      case (db, da, mm, ma, mt) => WorldView(db, da, mm, ma, Map.empty, mt)
-  }
+    ^^^^^(D.getBacklog, D.getAgents, M.getManaged, M.getAlive, Map.empty[MachineNode, Epoch].pure[F], M.getTime)(WorldView)
 
   def update(old: WorldView): F[WorldView] = for {
     snap <- initial
@@ -30,13 +28,10 @@ final class DynAgentsModule[F[_]: Monad](D: Drone[F], M: Machines[F])
 
   def act(world: WorldView): F[WorldView] = world match {
     case NeedsAgent(node) =>
-      for {
-        _ <- M.start(node)
-        update = world.copy(pending = Map(node -> world.time))
-      } yield update
+      M.start(node) >| world.copy(pending = Map(node -> world.time))
     case Stale(nodes) =>
       for {
-        stopped <- nodes.traverse(M.stop)
+        stopped <- nodes.traverse(a => M.stop(a) >| a)
         updates = stopped.map(_ -> world.time).toList.toMap
         update = world.copy(pending = world.pending ++ updates)
       } yield update
