@@ -33,11 +33,49 @@ class Mutable(state: WorldView) {
     def getAlive: Map[MachineNode, Epoch] = state.alive
     def getManaged: NonEmptyList[MachineNode] = state.managed
     def getTime: Epoch = state.time
-    def start(node: MachineNode): MachineNode = { started += 1; node }
-    def stop(node: MachineNode): MachineNode = { stopped -= 1; node }
+    def start(node: MachineNode): Unit = { started += 1 }
+    def stop(node: MachineNode): Unit = { stopped -= 1 }
   }
 
   val program = new DynAgentsModule[Id](D, M)
+}
+
+object ConstImpl {
+  type F[a] = Const[String, a]
+
+  private val D = new Drone[F] {
+    def getBacklog: F[Int] = Const("backlog")
+    def getAgents: F[Int] = Const("agents")
+  }
+
+  private val M = new Machines[F] {
+    def getTime: F[Epoch] = Const("time")
+    def getManaged: F[NonEmptyList[MachineNode]] = Const("managed")
+    def getAlive: F[Map[MachineNode, Epoch]] = Const("alive")
+    def start(node: MachineNode): F[Unit] = Const("start")
+    def stop(node: MachineNode): F[Unit] = Const("stop")
+  }
+
+  val program = new DynAgentsModule[F](D, M)
+}
+
+object ConstCounterImpl {
+  type F[a] = Const[String ==>> Int, a]
+
+  private val D = new Drone[F] {
+    def getBacklog: F[Int] = Const(IMap("backlog" -> 1))
+    def getAgents: F[Int] = Const(IMap("agents" -> 1))
+  }
+
+  private val M = new Machines[F] {
+    def getTime: F[Epoch] = Const(IMap("time" -> 1))
+    def getManaged: F[NonEmptyList[MachineNode]] = Const(IMap("managed" -> 1))
+    def getAlive: F[Map[MachineNode, Epoch]] = Const(IMap("alive" -> 1))
+    def start(node: MachineNode): F[Unit] = Const(IMap("start" -> 1))
+    def stop(node: MachineNode): F[Unit] = Const(IMap("stop" -> 1))
+  }
+
+  val program = new DynAgentsModule[F](D, M)
 }
 
 class BusinessLogicTest extends FlatSpec {
@@ -84,5 +122,23 @@ class BusinessLogicTest extends FlatSpec {
     val world2 = program.act(world)
 
     world2 shouldBe world
+  }
+
+  it should "call the expected methods" in {
+    import ConstImpl._
+
+    val alive = Map(node1 -> time1, node2 -> time1)
+    val world = WorldView(1, 1, managed, alive, Map.empty, time4)
+
+    program.act(world).getConst shouldBe "stopstop"
+  }
+
+  it should "call the expected methods expected time" in {
+    import ConstCounterImpl._
+
+    val alive = Map(node1 -> time1, node2 -> time1)
+    val world = WorldView(1, 1, managed, alive, Map.empty, time4)
+
+    program.act(world).getConst shouldBe IMap("stop" -> 2)
   }
 }

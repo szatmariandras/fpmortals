@@ -11,7 +11,7 @@ trait DynAgents[F[_]] {
   def act(world: WorldView): F[WorldView]
 }
 
-final class DynAgentsModule[F[_]: Monad](D: Drone[F], M: Machines[F])
+final class DynAgentsModule[F[_]: Applicative](D: Drone[F], M: Machines[F])
   extends DynAgents[F] {
 
   def initial: F[WorldView] =
@@ -29,12 +29,15 @@ final class DynAgentsModule[F[_]: Monad](D: Drone[F], M: Machines[F])
   def act(world: WorldView): F[WorldView] = world match {
     case NeedsAgent(node) =>
       M.start(node) >| world.copy(pending = Map(node -> world.time))
+
     case Stale(nodes) =>
-      for {
-        stopped <- nodes.traverse(a => M.stop(a) >| a)
-        updates = stopped.map(_ -> world.time).toList.toMap
-        update = world.copy(pending = world.pending ++ updates)
-      } yield update
+      nodes.traverse { node =>
+        M.stop(node) >| node
+      }.map { stopped =>
+        val updates = stopped.strengthR(world.time).toList.toMap
+        world.copy(pending = world.pending ++ updates)
+      }
+
     case _ => world.pure[F]
   }
 
@@ -59,5 +62,14 @@ private object Stale {
         case (n, started) if (time - started) >= 5.hours => n
       }.toList.toNel
     case _ => None
+  }
+}
+
+final class Monitored[U[_]: Functor](program: DynAgents[U]) {
+  type F[a] = Const[Set[MachineNode], a]
+
+  private val D = new Drone[F] {
+    def getBacklog: F[Int] = Const(Set.empty)
+    def getAgents: F[Int] = Const(Set.empty)
   }
 }
